@@ -5,8 +5,12 @@ from einops.layers.torch import Rearrange
 from torch.nn import functional as F
 
 #from .networks.segformer import *
+
 from .segformer import *
-#from segformer import *
+from .attentions import MultiScaleGatedAttn
+
+# from segformer import *
+# from attentions import MultiScaleGatedAttn
 
 
 import math
@@ -18,7 +22,7 @@ import math
 
 from timm.models.layers import DropPath, to_2tuple
 #from deformable_LKA.deformable_LKA import deformable_LKA_Attention
-from .deformable_LKA import deformable_LKA_Attention
+#from .deformable_LKA import deformable_LKA_Attention
 
 class DWConvLKA(nn.Module):
     def __init__(self, dim=768):
@@ -115,9 +119,9 @@ class LKABlock(nn.Module):
         self.layer_scale_2 = nn.Parameter(
             layer_scale_init_value * torch.ones((dim)), requires_grad=True)
 
-    def forward(self, x, H, W):
-        B, N, C = x.shape
-        x = x.permute(0, 2, 1).view(B, C, H, W)
+    def forward(self, x):
+        #B, N, C = x.shape
+        #x = x.permute(0, 2, 1).view(B, C, H, W)
         y = x.permute(0,2,3,1) # b h w c, because norm requires this
         y = self.norm1(y)
         y = y.permute(0, 3, 1, 2) # b c h w, because attn requieres this
@@ -137,7 +141,7 @@ class LKABlock(nn.Module):
         x = x + y
         #x = x + self.drop_path(self.layer_scale_2.unsqueeze(-1).unsqueeze(-1)
         #                       * self.mlp(self.norm2(x)))
-        x = x.view(B, C, N).permute(0, 2, 1)
+        #x = x.view(B, C, N).permute(0, 2, 1)
         #print("LKA return shape: {}".format(x.shape))
         return x
 
@@ -1509,47 +1513,30 @@ class MyDecoderLayerTrEcaGanorm(nn.Module):
         reduction_ratio = reduction_ratio
         # print("Dim: {} | Out_dim: {} | Key_dim: {} | Value_dim: {} | X1_dim: {}".format(dims, out_dim, key_dim, value_dim, x1_dim))
         if not is_last:
-            self.x1_linear = nn.Linear(x1_dim, out_dim)
-            self.ag_attn = Gated_Attention_block(x1_dim, x1_dim, x1_dim)
+            #self.x1_linear = nn.Linear(x1_dim, out_dim)
+            #self.ag_attn = Gated_Attention_block(x1_dim, x1_dim, x1_dim)
+            self.ag_attn = MultiScaleGatedAttn(dim= x1_dim)
             self.ag_attn_norm = nn.LayerNorm(out_dim)
-            # self.lka_attn = LKABlock(dim=dims) # TODO: Further input parameters here
-            # self.cross_attn = CrossAttentionBlock( # Skip connection block
-            #    dims, key_dim, value_dim, input_size[0], input_size[1], head_count, token_mlp_mode
-            # )
-            # self.concat_linear = nn.Linear(2 * dims, out_dim)
-            # transformer decoder
+
             self.layer_up = PatchExpand(input_resolution=input_size, dim=out_dim, dim_scale=2, norm_layer=norm_layer)
             self.last_layer = None
         else:
-            self.x1_linear = nn.Linear(x1_dim, out_dim)
-            self.ag_attn = Gated_Attention_block(x1_dim, x1_dim, x1_dim)
+            #self.x1_linear = nn.Linear(x1_dim, out_dim)
+            #self.ag_attn = Gated_Attention_block(x1_dim, x1_dim, x1_dim)
+            self.ag_attn = MultiScaleGatedAttn(dim=x1_dim)
             self.ag_attn_norm = nn.LayerNorm(out_dim)
-            # self.lka_attn = LKABlock(dim=dims) # TODO: Further input parameters here
-            # self.cross_attn = CrossAttentionBlock( # Skip connection block
-            #    dims * 2, key_dim, value_dim, input_size[0], input_size[1], head_count, token_mlp_mode
-            # )
-            # self.concat_linear = nn.Linear(4 * dims, out_dim)
-            # transformer decoder
+
             self.layer_up = FinalPatchExpand_X4(
                 input_resolution=input_size, dim=out_dim, dim_scale=4, norm_layer=norm_layer
             )
             self.last_layer = nn.Conv2d(out_dim, n_class, 1)
 
-        # self.layer_former_1 = DualTransformerBlock(out_dim, key_dim, value_dim, head_count, token_mlp_mode)
-        # self.layer_lka_1 = deformableLKABlock(dim=out_dim) # TODO
 
-        # self.layer_lka_1 = nn.Conv2d(in_channels=out_dim, out_channels=out_dim, kernel_size=3, stride=1,padding=1)
-        # self.layer_lka_2 =nn.Conv2d(in_channels=out_dim, out_channels=out_dim, kernel_size=3, stride=1,padding=1)
+        #self.layer_lka_1 = SinaAttnBlock(dim = out_dim)
+        self.layer_lka_1 = LKABlock(dim = out_dim)
+        self.layer_lka_2 = LKABlock(dim = out_dim)
+        #self.layer_lka_2 = SinaAttnBlock(dim = out_dim)
 
-        # self.layer_lka_1 = CBAM(gate_channels=out_dim, reduction_ratio=reduction_ratio)
-        # self.layer_lka_2 = CBAM(gate_channels=out_dim, reduction_ratio=reduction_ratio)
-        #self.layer_lka_1 = EfCBAM(gate_channels=out_dim)
-        #self.layer_lka_2 = EfCBAM(gate_channels=out_dim)
-
-        self.layer_lka_1 = SinaAttnBlock(dim = out_dim)
-        self.layer_lka_2 = SinaAttnBlock(dim = out_dim)
-        # self.layer_former_2 = DualTransformerBlock(out_dim, key_dim, value_dim, head_count, token_mlp_mode)
-        # self.layer_lka_2 = deformableLKABlock(dim=out_dim) # TODO
 
         def init_weights(self):
             for m in self.modules():
@@ -1573,30 +1560,27 @@ class MyDecoderLayerTrEcaGanorm(nn.Module):
             # b, c, h, w = x1.shape
             b2, h2, w2, c2 = x2.shape  # 1 28 28 320, 1 56 56 128
             x2 = x2.view(b2, -1, c2)  # 1 784 320, 1 3136 128
-            x1_expand = self.x1_linear(x1)  # 1 784 256 --> 1 784 320, 1 3136 160 --> 1 3136 128
 
-            # cat_linear_x = self.concat_linear(self.cross_attn(x1_expand, x2)) # 1 784 320, 1 3136 128
-            # cat_linear_x = x1_expand + x2 # Simply add them in the first step. TODO: Add more complex skip connection here
-
+            #x1_expand = self.x1_linear(x1)  # 1 784 256 --> 1 784 320, 1 3136 160 --> 1 3136 128
+            x1_expand = x1
             x2_new = x2.view(x2.size(0), x2.size(2), x2.size(1) // w2, x2.size(1) // h2)
 
             x1_expand = x1_expand.view(x2.size(0), x2.size(2), x2.size(1) // w2, x2.size(1) // h2)
 
-            attn_gate = self.ag_attn(x1_expand, x2_new) # B C H W
+            #print(f'the x1_expand shape is: {x1_expand.shape}\n\t the x2_new shape is: {x2_new.shape}')
+
+            attn_gate = self.ag_attn(x = x2_new, g = x1_expand) # B C H W
 
             cat_linear_x = x1_expand + attn_gate # B C H W
             cat_linear_x = cat_linear_x.permute(0,2,3,1) # B H W C
             cat_linear_x = self.ag_attn_norm(cat_linear_x) # B H W C
 
             cat_linear_x = cat_linear_x.permute(0, 3, 1, 2).contiguous() # B C H W
-            # tran_layer_1 = self.layer_former_1(cat_linear_x, h, w) # 1 784 320, 1 3136 128
-            # tran_layer_1 = self.layer_lka_1(cat_linear_x, h, w)
+
             tran_layer_1 = self.layer_lka_1(cat_linear_x)
             # print(tran_layer_1.shape)
             tran_layer_2 = self.layer_lka_2(tran_layer_1)
-            # print(tran_layer_2.shape)
-            # tran_layer_2 = self.layer_former_2(tran_layer_1, h, w) # 1 784 320, 1 3136 128
-            # tran_layer_2 = self.layer_lka_2(tran_layer_1, h, w) #self.layer_lka_1(tran_layer_1, h, w) # Here has to be a 2! LEON CHANGE THIS!!!!
+
             tran_layer_2 = tran_layer_2.view(tran_layer_2.size(0), tran_layer_2.size(3) * tran_layer_2.size(2),
                                              tran_layer_2.size(1))
             if self.last_layer:
@@ -1615,7 +1599,7 @@ class MyDecoderLayerTrEcaGanorm(nn.Module):
 #from .merit_lib.networks import MaxViT4Out_Small#, MaxViT4Out_Small3D
 #from networks.merit_lib.networks import MaxViT4Out_Small
 from .merit_lib.networks import MaxViT4Out_Small
-from .merit_lib.decoders import CASCADE_Add, CASCADE_Cat
+#from .merit_lib.decoders import CASCADE_Add, CASCADE_Cat
 
 
 
@@ -2149,19 +2133,19 @@ if __name__ == "__main__":
     input = torch.randn((1,768,7,7)).cuda(0)
     input2 = torch.randn((1,384,14, 14)).cuda(0)
     input3 = torch.randn((1, 192, 28, 28)).cuda(0)
-    #b, c, _, _ = input.shape
-    dec1 = MyDecoderLayer(input_size=(7,7), in_out_chan= ([768, 768, 768, 768, 768]), head_count=1,
-                          token_mlp_mode='mix_skip').cuda(0)
-    dec2 = MyDecoderLayer(input_size=(14, 14), in_out_chan=([384, 384, 384, 384, 384]), head_count=1,
-                          token_mlp_mode='mix_skip').cuda(0)
-    dec3 = MyDecoderLayer(input_size=(28, 28), in_out_chan=([192, 192, 192, 192, 192]), head_count=1,
-                          token_mlp_mode='mix_skip').cuda(0)
-    #output = dec1(input.permute(0, 2, 3, 1).view(b, -1 , c))
-    #output2 = dec2(output, input2.permute(0, 2, 3, 1))
-    #output3 = dec3(output2, input3.permute(0, 2, 3, 1))
+    b, c, _, _ = input.shape
+    dec1 = MyDecoderLayerTrEcaGanorm(input_size=(7,7), in_out_chan= ([768, 768, 768, 768, 768]), head_count=1,
+                          token_mlp_mode='mix_skip', reduction_ratio= 16).cuda(0)
+    dec2 = MyDecoderLayerTrEcaGanorm(input_size=(14, 14), in_out_chan=([384, 384, 384, 384, 384]), head_count=1,
+                          token_mlp_mode='mix_skip', reduction_ratio= 8).cuda(0)
+    dec3 = MyDecoderLayerTrEcaGanorm(input_size=(28, 28), in_out_chan=([192, 192, 192, 192, 192]), head_count=1,
+                          token_mlp_mode='mix_skip', reduction_ratio= 6).cuda(0)
+    output = dec1(input.permute(0, 2, 3, 1).view(b, -1 , c))
+    output2 = dec2(output, input2.permute(0, 2, 3, 1))
+    output3 = dec3(output2, input3.permute(0, 2, 3, 1))
 
-    net = MaxViT_deformableLKAFormer().cuda(0)
+    #net = MaxViT_deformableLKAFormer().cuda(0)
 
-    output0 = net(input0)
-    #print("Out shape: " + str(output.shape) + 'Out2 shape:' + str(output2.shape)+"Out shape3: " + str(output3.shape))
-    print("Out shape: " + str(output0.shape))
+    #output0 = net(input0)
+    print("Out shape: " + str(output.shape) + 'Out2 shape:' + str(output2.shape)+"Out shape3: " + str(output3.shape))
+    #print("Out shape: " + str(output0.shape))
