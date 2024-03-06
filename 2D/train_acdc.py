@@ -20,7 +20,7 @@ from tensorboardX import SummaryWriter
 from utils2 import DiceLoss, calculate_dice_percase, val_single_volume, BoundaryDoULoss
 from dataset_ACDC import ACDCdataset, RandomGenerator
 from test_acdc import inference
-from networks.MaxViT_deform_LKA import MaxViT_deformableLKAFormerTrEcaGanorm
+from networks.MaxViT_deform_LKA import MaxViT_deformableLKAFormerTrEcaGanorm, MaxViT_deformableLKAFormerTrEcaGanormV2
 # from lib.cnn_vit_backbone import CONFIGS as CONFIGS_ViT_seg
 import datetime
 
@@ -49,6 +49,8 @@ parser.add_argument('--vit_name', type=str,
                     default='R50-ViT-B_16', help='select one vit model')
 parser.add_argument('--vit_patches_size', type=int,
                     default=16, help='vit_patches_size, default is 16')
+parser.add_argument("--model_name", type=str, default="MaxViT_deform_LKA3", help="model_name")
+
 args = parser.parse_args()
 
 if not args.deterministic:
@@ -98,7 +100,8 @@ if not os.path.exists(test_save_path):
 if args.model_name == "MaxViT_deform_ECAGaNorm":
 
     net = MaxViT_deformableLKAFormerTrEcaGanorm(num_classes= args.num_classes).cuda(0)
-
+elif args.model_name == "MaxViT_deform_LKA_TrEcaGanorm_V2":
+        net = MaxViT_deformableLKAFormerTrEcaGanormV2(num_classes=args.num_classes).cuda(0)
 # net = PVT_CASCADE(n_class=config_vit.n_classes).cuda() # model initialization for PVT-CASCADE. comment above two lines if use PVT-CASCADE
 
 

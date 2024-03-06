@@ -2219,6 +2219,73 @@ class MaxViT_deformableLKAFormerTrEcaGanorm(nn.Module):
         tmp_0 = self.decoder_0(tmp_1, output_enc_0.permute(0, 2, 3, 1))
 
         return tmp_0
+
+class MaxViT_deformableLKAFormerTrEcaGanormV2(nn.Module):
+    def __init__(self, num_classes=9, head_count=1, token_mlp_mode="mix_skip"):
+        super().__init__()
+
+        # Encoder
+        self.backbone = MaxViT4Out_Small(n_class=num_classes, img_size=224)
+
+        # Decoder
+        d_base_feat_size = 7  # 16 for 512 input size, and 7 for 224
+        in_out_chan = [
+            [96, 96, 96, 96, 96],
+            [192, 192, 192, 192, 192],
+            [384, 384, 384, 384, 384],
+            [768, 768, 768, 768, 768],
+        ]  # [dim, out_dim, key_dim, value_dim, x2_dim]
+        reduction_ratio = [16, 8, 6, 2]
+
+        self.decoder_3 = MyDecoderLayerTrEcaGanormV2(
+            (d_base_feat_size, d_base_feat_size),
+            in_out_chan[3],
+            head_count,
+            token_mlp_mode,
+            n_class=num_classes,
+            reduction_ratio=reduction_ratio[0])
+
+        self.decoder_2 = MyDecoderLayerTrEcaGanormV2(
+            (d_base_feat_size * 2, d_base_feat_size * 2),
+            in_out_chan[2],
+            head_count,
+            token_mlp_mode,
+            n_class=num_classes,
+            reduction_ratio=reduction_ratio[1])
+        self.decoder_1 = MyDecoderLayerTrEcaGanormV2(
+            (d_base_feat_size * 4, d_base_feat_size * 4),
+            in_out_chan[1],
+            head_count,
+            token_mlp_mode,
+            n_class=num_classes,
+            reduction_ratio=reduction_ratio[2])
+        self.decoder_0 = MyDecoderLayerTrEcaGanormV2(
+            (d_base_feat_size * 8, d_base_feat_size * 8),
+            in_out_chan[0],
+            head_count,
+            token_mlp_mode,
+            n_class=num_classes,
+            is_last=True,
+            reduction_ratio=reduction_ratio[3])
+
+    def forward(self, x):
+        # ---------------Encoder-------------------------
+        if x.size()[1] == 1:
+            x = x.repeat(1, 3, 1, 1)
+
+        output_enc_3, output_enc_2, output_enc_1, output_enc_0 = self.backbone(x)
+
+        b, c, _, _ = output_enc_3.shape
+        # print(output_enc_3.shape)
+        # ---------------Decoder-------------------------
+        tmp_3 = self.decoder_3(output_enc_3.permute(0, 2, 3, 1).view(b, -1, c))
+        tmp_2 = self.decoder_2(tmp_3, output_enc_2.permute(0, 2, 3, 1))
+        tmp_1 = self.decoder_1(tmp_2, output_enc_1.permute(0, 2, 3, 1))
+        tmp_0 = self.decoder_0(tmp_1, output_enc_0.permute(0, 2, 3, 1))
+
+        return tmp_0
+
+
 if __name__ == "__main__":
     
 

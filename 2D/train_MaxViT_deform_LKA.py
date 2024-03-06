@@ -9,7 +9,7 @@ import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 
-from networks.MaxViT_deform_LKA import  MaxViT_deformableLKAFormer2, MaxViT_deformableLKAFormer3,MaxViT_deformableLKAFormerTrEcaGann,MaxViT_deformableLKAFormerTrEca,MaxViT_deformableLKAFormerTrEcaGanorm, MaxViT_deformableLKAFormer6,MaxViT_deformableLKAFormer7
+from networks.MaxViT_deform_LKA import  MaxViT_deformableLKAFormerTrEcaGanormV2, MaxViT_deformableLKAFormer3,MaxViT_deformableLKAFormerTrEcaGann,MaxViT_deformableLKAFormerTrEca,MaxViT_deformableLKAFormerTrEcaGanorm, MaxViT_deformableLKAFormer6,MaxViT_deformableLKAFormer7
 from trainer_MaxViT_deform_LKA import trainer_synapse
 
 from fvcore.nn import FlopCountAnalysis
@@ -118,14 +118,14 @@ if __name__ == "__main__":
 
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
-    if args.model_name == 'MaxViT_deform_LKA2':
-        net = MaxViT_deformableLKAFormer2().cuda(0)
-    elif args.model_name == 'MaxViT_deform_LKA_TrEca':
+    if args.model_name == 'MaxViT_deform_LKA_TrEca':
         net = MaxViT_deformableLKAFormerTrEca().cuda(0) # DLKA (Eca)
     elif args.model_name == 'MaxViT_deform_LKA_TrEcaGann':
         net = MaxViT_deformableLKAFormerTrEcaGann().cuda(0) # DLKA (Eca) + GA
     elif args.model_name == 'MaxViT_deform_LKA_TrEcaGanorm':
         net = MaxViT_deformableLKAFormerTrEcaGanorm().cuda(0) # DLKA (Eca) + norm(GA)
+    elif args.model_name == 'MaxViT_deform_LKA_TrEcaGanorm_V2':
+        net = MaxViT_deformableLKAFormerTrEcaGanormV2().cuda(0) # DLKA (Eca) + norm(GA)
     elif args.model_name == 'MaxViT_deform_LKA6':
         net = MaxViT_deformableLKAFormer6().cuda(0) # ECA
     elif args.model_name == 'MaxViT_deform_LKA7':

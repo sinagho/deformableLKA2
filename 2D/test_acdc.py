@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from utils2 import test_single_volume
 from dataset_ACDC import ACDCdataset, RandomGenerator
-from networks.MaxViT_deform_LKA import MaxViT_deformableLKAFormerTrEcaGanorm
+from networks.MaxViT_deform_LKA import MaxViT_deformableLKAFormerTrEcaGanorm, MaxViT_deformableLKAFormerTrEcaGanormV2
 # from lib.networks import TransCASCADE, PVT_CASCADE
 # from lib.cnn_vit_backbone import CONFIGS as CONFIGS_ViT_seg
 
@@ -71,6 +71,7 @@ if __name__ == "__main__":
                         default='R50-ViT-B_16', help='select one vit model')
     parser.add_argument('--vit_patches_size', type=int,
                         default=16, help='vit_patches_size, default is 16')
+    parser.add_argument("--model_name", type=str, default="MaxViT_deform_LKA3", help="model_name")
     args = parser.parse_args()
 
     if not args.deterministic:
@@ -107,7 +108,10 @@ if __name__ == "__main__":
     # if args.vit_name.find('R50') != -1:
     #     config_vit.patches.grid = (
     #     int(args.img_size / args.vit_patches_size), int(args.img_size / args.vit_patches_size))
-    net = MaxViT_deformableLKAFormerTrEcaGanorm(num_classes= args.num_classes).cuda(0) #TODO: Image size should be checked
+    if args.model_name == 'MaxViT_deform_LKA_TrEcaGanorm':
+        net = MaxViT_deformableLKAFormerTrEcaGanorm(num_classes= args.num_classes).cuda(0)
+    elif args.model_name == "MaxViT_deform_LKA_TrEcaGanorm_V2":
+        net = MaxViT_deformableLKAFormerTrEcaGanormV2(num_classes=args.num_classes).cuda(0)
     #net = TransCASCADE(config_vit, img_size=args.img_size, num_classes=config_vit.n_classes).cuda()
     # net = PVT_CASCADE(n_class=config_vit.n_classes).cuda()
 
