@@ -20,7 +20,7 @@ from tensorboardX import SummaryWriter
 from utils2 import DiceLoss, calculate_dice_percase, val_single_volume, BoundaryDoULoss
 from dataset_ACDC import ACDCdataset, RandomGenerator
 from test_acdc import inference
-from networks.MaxViT_deform_LKA import MaxViT_deformableLKAFormerTrEcaGanorm, MaxViT_deformableLKAFormerTrEcaGanormV2, MaxViT_deformableLKAFormerTrEcaGanorm_res,MaxViT_deformableLKAFormerTrEcaGanormV3
+from networks.MaxViT_deform_LKA import MaxViT_LargeKernelDualTransformer,MaxViT_deformableLKAFormerTrEcaGanorm, MaxViT_deformableLKAFormerTrEcaGanormV2, MaxViT_deformableLKAFormerTrEcaGanorm_res,MaxViT_deformableLKAFormerTrEcaGanormV3
 # from lib.cnn_vit_backbone import CONFIGS as CONFIGS_ViT_seg
 import datetime
 
@@ -106,8 +106,8 @@ elif args.model_name == "MaxViT_deform_LKA_TrEcaGanorm_V2":
         net = MaxViT_deformableLKAFormerTrEcaGanormV2(num_classes=args.num_classes).cuda(0)
 elif args.model_name == "MaxViT_deform_LKA_res":
         net = MaxViT_deformableLKAFormerTrEcaGanorm_res(num_classes=args.num_classes).cuda(0)
-elif args.model_name == "MaxViT_deform_LKA_v3":
-        net = MaxViT_deformableLKAFormerTrEcaGanormV3(num_classes=args.num_classes).cuda(0)
+elif args.model_name == "MaxViT_double":
+        net = MaxViT_LargeKernelDualTransformer(num_classes=args.num_classes).cuda(0)
 # net = PVT_CASCADE(n_class=config_vit.n_classes).cuda() # model initialization for PVT-CASCADE. comment above two lines if use PVT-CASCADE
 
 

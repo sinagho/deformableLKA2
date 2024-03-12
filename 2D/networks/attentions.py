@@ -541,7 +541,7 @@ class MultiScaleGatedAttn(nn.Module):
     # attention map channel is C
     # Softmax is chosen
     # residual
-    # interaction addition is multiplation
+    # interaction addition is multipilation
     # batch norm
   def __init__(self, dim):
     super().__init__()
@@ -551,12 +551,11 @@ class MultiScaleGatedAttn(nn.Module):
     self.bn = nn.BatchNorm2d(dim)
     self.bn_2 = nn.BatchNorm2d(dim)
     self.conv_block = nn.Sequential(
-        nn.Conv2d(in_channels= dim, out_channels= dim,
-                  kernel_size= 3, padding= 1, stride= 1),
-        nn.BatchNorm2d(num_features= dim),
+        #nn.Conv2d(in_channels= dim, out_channels= dim, kernel_size= 3, padding= 1, stride= 1),
+        #nn.BatchNorm2d(num_features= dim),
         nn.Conv2d(in_channels=dim, out_channels=dim,
-                  kernel_size=1, stride=1),
-        nn.BatchNorm2d(num_features=dim)
+                  kernel_size=1, stride=1)
+        #nn.BatchNorm2d(num_features=dim)
     )
 
   def forward(self,x,g):
@@ -623,7 +622,7 @@ class MultiScaleGatedAttn_soft_1_res(nn.Module):
         self.selection = nn.Conv2d(dim, 2,1)
         self.proj = nn.Conv2d(dim, 1,1)
         self.bn = nn.BatchNorm2d(1)
-        self.bn_2 = nn.BatchNorm2d(1)
+        self.bn_2 = nn.BatchNorm2d(dim)
 
         self.conv_block = nn.Sequential(
             nn.Conv2d(in_channels=dim, out_channels=dim,
@@ -680,8 +679,9 @@ class MultiScaleGatedAttn_soft_1_res(nn.Module):
         projected = torch.sigmoid(self.bn(self.proj(interaction)))
 
         weighted = projected * x_
-
+        #print(projected.shape)
         y = self.conv_block(weighted)
+        #print(y.shape)
 
         y = self.bn_2(weighted + y)
 
@@ -703,12 +703,11 @@ class MultiScaleGatedAttnV2(nn.Module):
         self.bn_2 = nn.BatchNorm2d(dim)
 
         self.conv_block = nn.Sequential(
+            #nn.Conv2d(in_channels=dim, out_channels=dim,kernel_size=3, padding=1, stride=1),
+            #nn.BatchNorm2d(num_features=dim),
             nn.Conv2d(in_channels=dim, out_channels=dim,
-                      kernel_size=3, padding=1, stride=1),
-            nn.BatchNorm2d(num_features=dim),
-            nn.Conv2d(in_channels=dim, out_channels=dim,
-                      kernel_size=1, stride=1),
-            nn.BatchNorm2d(num_features=dim)
+                      kernel_size=1, stride=1)
+            #nn.BatchNorm2d(num_features=dim)
         )
 
     def forward(self, x, g):
@@ -777,12 +776,12 @@ class MultiScaleGatedAttnV3_sum(nn.Module):
     self.bn_2 = nn.BatchNorm2d(dim)
 
     self.conv_block = nn.Sequential(
-        nn.Conv2d(in_channels= dim, out_channels= dim,
-                  kernel_size= 3, padding= 1, stride= 1),
-        nn.BatchNorm2d(num_features= dim),
+        #nn.Conv2d(in_channels= dim, out_channels= dim,kernel_size= 3, padding= 1, stride= 1),
+        #nn.BatchNorm2d(num_features= dim),
         nn.Conv2d(in_channels=dim, out_channels=dim,
-                  kernel_size=1, stride=1),
-        nn.BatchNorm2d(num_features=dim))
+                  kernel_size=1, stride=1)
+    )
+        #nn.BatchNorm2d(num_features=dim))
   def forward(self,x, g):
     x_ = x.clone()
     g_ = g.clone()
@@ -841,6 +840,6 @@ if __name__ == "__main__":
     g = torch.randn(1, 192, 28, 28).cuda()
     #ff = ContextBridge(dim=192)
 
-    attn = MultiScaleGatedAttn_soft_1_res(dim = xi.shape[1]).cuda()
+    attn = MultiScaleGatedAttn(dim = xi.shape[1]).cuda()
 
     print(attn(xi, g).shape)
