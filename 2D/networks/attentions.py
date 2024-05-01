@@ -607,7 +607,8 @@ class MultiScaleGatedAttn(nn.Module):
 
     y = self.conv_block(weighted)
 
-    y = self.bn_2(weighted + y)
+    #y = self.bn_2(weighted + y)
+    y = self.bn_2(y)
     return y
 
 class MultiScaleGatedAttn_soft_1_res(nn.Module):
