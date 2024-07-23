@@ -1,4 +1,4 @@
-# Beyond Self-Attention: Deformable Large Kernel Attention for Medical Image Segmentation <br> <span style="float: right"><sub><sup>WACV 2024</sub></sup></span>
+# MSA<sup>2</sup>Net: Multi-scale Adaptive Attention-guided Network for Medical Image Segmentation <br> <span style="float: right"><sub><sup>WACV 2024</sub></sup></span>
 [![arXiv](https://img.shields.io/badge/arXiv-2309.00121-b31b1b.svg)](https://arxiv.org/abs/2309.00121)
 
 
